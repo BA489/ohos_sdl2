@@ -114,7 +114,7 @@ main(int argc, char *argv[])
     alive = 0;
     SDL_WaitThread(thread, NULL);
 
-    SDL_Log("Main thread and data finally: %s\n", (const char *)SDL_TLSGet(tls));
+    SDL_Log("Main thread data finally: %s\n", (const char *)SDL_TLSGet(tls));
 
     alive = 1;
     signal(SIGTERM, killed);
