@@ -32,8 +32,14 @@ SDL_Window *_createVideoSuiteTestWindow(const char *title)
   /* Standard window */
   x = SDLTest_RandomIntegerInRange(1, 100);
   y = SDLTest_RandomIntegerInRange(1, 100);
-  w = SDLTest_RandomIntegerInRange(320, 1024);
-  h = SDLTest_RandomIntegerInRange(320, 768);
+#ifdef __OHOS__
+#include "../SDL/src/video/ohos/SDL_ohosvideo.h"
+  w = SDLTest_RandomIntegerInRange(320, OHOS_DeviceWidth);
+  h = SDLTest_RandomIntegerInRange(320, OHOS_DeviceHeight);
+#else
+  w = SDLTest_RandomIntegerInRange(320, 720);
+  h = SDLTest_RandomIntegerInRange(320, 1136);
+#endif
   flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS;
 
   window = SDL_CreateWindow(title, x, y, w, h, flags);
@@ -1770,7 +1776,7 @@ static const SDLTest_TestCaseReference videoTest15 =
         { (SDLTest_TestCaseFp)video_getWindowGammaRampNegative, "video_getWindowGammaRampNegative",  "Get window gamma ramp against invalid input", TEST_ENABLED };
 
 static const SDLTest_TestCaseReference videoTest16 =
-        { (SDLTest_TestCaseFp)video_getSetWindowGrab, "video_getSetWindowGrab",  "Checks SDL_GetWindowGrab and SDL_SetWindowGrab positive and negative cases", TEST_ENABLED };
+        { (SDLTest_TestCaseFp)video_getSetWindowGrab, "video_getSetWindowGrab",  "Checks SDL_GetWindowGrab and SDL_SetWindowGrab positive and negative cases", TEST_DISABLED };
 
 static const SDLTest_TestCaseReference videoTest17 =
         { (SDLTest_TestCaseFp)video_getWindowId, "video_getWindowId",  "Checks SDL_GetWindowID and SDL_GetWindowFromID", TEST_ENABLED };

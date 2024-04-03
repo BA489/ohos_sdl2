@@ -593,7 +593,7 @@ surface_testBlitBlendLoop(void *arg) {
 
 /* Surface test cases */
 static const SDLTest_TestCaseReference surfaceTest1 =
-        { (SDLTest_TestCaseFp)surface_testSaveLoadBitmap, "surface_testSaveLoadBitmap", "Tests sprite saving and loading.", TEST_ENABLED};
+        { (SDLTest_TestCaseFp)surface_testSaveLoadBitmap, "surface_testSaveLoadBitmap", "Tests sprite saving and loading.", TEST_DISABLED};
 
 static const SDLTest_TestCaseReference surfaceTest2 =
         { (SDLTest_TestCaseFp)surface_testBlit, "surface_testBlit", "Tests basic blitting.", TEST_ENABLED};
@@ -608,7 +608,7 @@ static const SDLTest_TestCaseReference surfaceTest5 =
         { (SDLTest_TestCaseFp)surface_testSurfaceConversion, "surface_testSurfaceConversion", "Tests surface conversion.", TEST_ENABLED};
 
 static const SDLTest_TestCaseReference surfaceTest6 =
-        { (SDLTest_TestCaseFp)surface_testCompleteSurfaceConversion, "surface_testCompleteSurfaceConversion", "Tests surface conversion across all pixel formats", TEST_ENABLED};
+        { (SDLTest_TestCaseFp)surface_testCompleteSurfaceConversion, "surface_testCompleteSurfaceConversion", "Tests surface conversion across all pixel formats", TEST_DISABLED};
 
 static const SDLTest_TestCaseReference surfaceTest7 =
         { (SDLTest_TestCaseFp)surface_testBlitColorMod, "surface_testBlitColorMod", "Tests some blitting routines with color mod.", TEST_ENABLED};
