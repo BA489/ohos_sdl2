@@ -29,6 +29,8 @@
 #ifdef __IPHONEOS__
 #include <OpenGLES/ES1/gl.h>
 #include <OpenGLES/ES1/glext.h>
+#elif __OHOS__
+#include <GLES3/gl32.h>
 #else
 #include <GLES/gl.h>
 #include <GLES/glext.h>

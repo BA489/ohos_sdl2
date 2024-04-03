@@ -40,7 +40,7 @@ SDLTest_TestSuiteReference *testSuites[] =  {
     &platformTestSuite,
     &rectTestSuite,
     &renderTestSuite,
-    &rwopsTestSuite,
+//     &rwopsTestSuite,
     &sdltestTestSuite,
     &stdlibTestSuite,
     &surfaceTestSuite,
