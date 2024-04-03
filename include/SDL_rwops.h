@@ -45,6 +45,7 @@ extern "C" {
 #define SDL_RWOPS_JNIFILE   3U  /**< Android asset */
 #define SDL_RWOPS_MEMORY    4U  /**< Memory stream */
 #define SDL_RWOPS_MEMORY_RO 5U  /**< Read-Only memory stream */
+#define SDL_RWOPS_OHOSFILE  6U  /**< OHOS rawfile */
 
 /**
  * This is the read/write operation structure -- very basic.
@@ -106,6 +107,19 @@ typedef struct SDL_RWops
             long offset;
             int fd;
         } androidio;
+#elif defined(__OHOS__)
+        struct
+		{
+            void *nativeResourceManager;
+            void *fileDescriptorRef;
+            void *fileNameRef;
+            char *fileName;
+            char *mode;
+            long position;
+            long size;
+            long offset;
+            int fd;
+        } ohosio;
 #elif defined(__WIN32__)
         struct
         {
