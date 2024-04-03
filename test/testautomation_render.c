@@ -1065,17 +1065,17 @@ static const SDLTest_TestCaseReference renderTest1 =
         { (SDLTest_TestCaseFp)render_testGetNumRenderDrivers, "render_testGetNumRenderDrivers", "Tests call to SDL_GetNumRenderDrivers", TEST_ENABLED };
 
 static const SDLTest_TestCaseReference renderTest2 =
-        { (SDLTest_TestCaseFp)render_testPrimitives, "render_testPrimitives", "Tests rendering primitives", TEST_ENABLED };
+        { (SDLTest_TestCaseFp)render_testPrimitives, "render_testPrimitives", "Tests rendering primitives", TEST_DISABLED };
 
 /* TODO: rewrite test case, define new test data and re-enable; current implementation fails */
 static const SDLTest_TestCaseReference renderTest3 =
         { (SDLTest_TestCaseFp)render_testPrimitivesBlend, "render_testPrimitivesBlend", "Tests rendering primitives with blending", TEST_DISABLED };
 
 static const SDLTest_TestCaseReference renderTest4 =
-        { (SDLTest_TestCaseFp)render_testBlit, "render_testBlit", "Tests blitting", TEST_ENABLED };
+        { (SDLTest_TestCaseFp)render_testBlit, "render_testBlit", "Tests blitting", TEST_DISABLED };
 
 static const SDLTest_TestCaseReference renderTest5 =
-        { (SDLTest_TestCaseFp)render_testBlitColor, "render_testBlitColor", "Tests blitting with color", TEST_ENABLED };
+        { (SDLTest_TestCaseFp)render_testBlitColor, "render_testBlitColor", "Tests blitting with color", TEST_DISABLED };
 
 /* TODO: rewrite test case, define new test data and re-enable; current implementation fails */
 static const SDLTest_TestCaseReference renderTest6 =

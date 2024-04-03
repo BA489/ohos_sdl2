@@ -45,7 +45,10 @@ main(int argc, char *argv[])
     if (!state) {
         return 1;
     }
-
+#ifdef __OHOS__
+	state->num_windows = 0;
+#endif
+    
     /* Parse commandline */
     for (i = 1; i < argc;) {
         int consumed;
