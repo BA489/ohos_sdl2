@@ -50,8 +50,11 @@ static int main_testInitQuitSubSystem (void *arg)
     return TEST_SKIPPED;
 #else
     int i;
-//     int subsystems[] = { SDL_INIT_JOYSTICK, SDL_INIT_HAPTIC, SDL_INIT_GAMECONTROLLER };
+#if defined (__OHOS__)
     int subsystems[] = {SDL_INIT_HAPTIC};
+#else
+    int subsystems[] = { SDL_INIT_JOYSTICK, SDL_INIT_HAPTIC, SDL_INIT_GAMECONTROLLER };
+#endif
     for (i = 0; i < SDL_arraysize(subsystems); ++i) {
         int initialized_system;
         int subsystem = subsystems[i];
