@@ -99,12 +99,12 @@ static int SDL_android_priority[SDL_NUM_LOG_PRIORITIES] = {
 #ifdef __OHOS__
 static const char *SDL_category_prefixes[SDL_LOG_CATEGORY_RESERVED2] = {
     "APP",
-	"ERROR",
-	"SYSTEM",
-	"AUDIO",
-	"VIDEO",
-	"RENDER",
-	"INPUT"
+    "ERROR",
+    "SYSTEM",
+    "AUDIO",
+    "VIDEO",
+    "RENDER",
+    "INPUT"
 };
 
 static int SDL_ohos_priority[SDL_NUM_LOG_PRIORITIES] = {

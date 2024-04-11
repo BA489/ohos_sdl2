@@ -92,7 +92,7 @@ static VideoBootStrap *bootstrap[] = {
     &Android_bootstrap,
 #endif
 #if SDL_VIDEO_DRIVER_OHOS
-    &OHOS_bootstrap,
+    &g_ohosBootstrap,
 #endif
 #if SDL_VIDEO_DRIVER_PSP
     &PSP_bootstrap,
