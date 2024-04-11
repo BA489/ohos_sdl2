@@ -22,7 +22,7 @@
 #define MAX_YUV_SURFACE_SIZE(W, H, P)  (H*4*(W+P+1)/2)
 
 #ifdef __OHOS__
-#define OHOS_NUM_TWO 2 
+#define OHOS_NUM_TWO 2
 #endif
 
 /* Return true if the YUV format is packed pixels */

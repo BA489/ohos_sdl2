@@ -39,8 +39,8 @@ SDL_Window *_createVideoSuiteTestWindow(const char *title)
   y = SDLTest_RandomIntegerInRange(1, 100);
 #ifdef __OHOS__
 #include "../SDL/src/video/ohos/SDL_ohosvideo.h"
-  w = SDLTest_RandomIntegerInRange(OHOS_MIN_DEVICEWIDTH, g_ohosDeviceWidth);
-  h = SDLTest_RandomIntegerInRange(OHOS_MIN_DEVICEHEIGHT, g_ohosDeviceHeight);
+    w = SDLTest_RandomIntegerInRange(OHOS_MIN_DEVICEWIDTH, g_ohosDeviceWidth);
+    h = SDLTest_RandomIntegerInRange(OHOS_MIN_DEVICEHEIGHT, g_ohosDeviceHeight);
 #else
   w = SDLTest_RandomIntegerInRange(320, 720);
   h = SDLTest_RandomIntegerInRange(320, 1136);

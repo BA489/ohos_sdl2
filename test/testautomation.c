@@ -46,7 +46,7 @@ main(int argc, char *argv[])
         return 1;
     }
 #ifdef __OHOS__
-	state->num_windows = 0;
+    state->num_windows = 0;
 #endif
     
     /* Parse commandline */
