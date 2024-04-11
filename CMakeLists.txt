@@ -1038,7 +1038,6 @@ if(ANDROID)
 
   CheckPTHREAD()
 elseif(OHOS)
-  set(SDL_SHARED TRUE)
   if(NOT CJSON_USE_SYSTEM_LIBS)
 	if(NOT DEFINED CJSON_SOURCE_DIR)
 		message(STATUS "Downloading cjson to ${CMAKE_BINARY_DIR}/cjson-source (define CJSON_SOURCE_DIR to avoid it)")
