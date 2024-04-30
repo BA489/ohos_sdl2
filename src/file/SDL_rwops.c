@@ -58,6 +58,10 @@
 #include "SDL_system.h"
 #endif
 
+#ifdef __OHOS__
+#include "../core/ohos/SDL_ohos.h"
+#endif
+
 #if __NACL__
 #include "nacl_io/nacl_io.h"
 #endif
@@ -574,6 +578,47 @@ SDL_RWFromFile(const char *file, const char *mode)
     rwops->write = Android_JNI_FileWrite;
     rwops->close = Android_JNI_FileClose;
     rwops->type = SDL_RWOPS_JNIFILE;
+
+#elif defined(__OHOS__)
+#ifdef HAVE_STDIO_H
+    /* Try to open the file on the filesystem first */
+    if (*file == '/') {
+        FILE *fp = fopen(file, mode);
+        if (fp) {
+            return SDL_RWFromFP(fp, 1);
+        }
+    } else {
+        /* Try opening it from internal storage if it's a relative path */
+        char *path;
+        FILE *fp;
+
+        /* !!! FIXME: why not just "char path[PATH_MAX];" ? */
+        path = SDL_stack_alloc(char, PATH_MAX);
+        if (path) {
+            SDL_snprintf(path, PATH_MAX, "%s/%s", SDL_OHOSGetInternalStoragePath(), file);
+            fp = fopen(path, mode);
+            SDL_stack_free(path);
+            if (fp) {
+                return SDL_RWFromFP(fp, 1);
+            }
+        }
+    }
+#endif /* HAVE_STDIO_H */
+
+    /* Try to open the file from the asset system */
+    rwops = SDL_AllocRW();
+    if (!rwops)
+        return NULL; /* SDL_SetError already setup by SDL_AllocRW() */
+    if (OHOS_FileOpen(rwops, file, mode) < 0) {
+        SDL_FreeRW(rwops);
+        return NULL;
+    }
+    rwops->size = OHOS_FileSize;
+    rwops->seek = OHOS_FileSeek;
+    rwops->read = OHOS_FileRead;
+    rwops->write = OHOS_FileWrite;
+    rwops->close = OHOS_FileClose;
+    rwops->type = SDL_RWOPS_OHOSFILE;
 
 #elif defined(__WIN32__)
     rwops = SDL_AllocRW();

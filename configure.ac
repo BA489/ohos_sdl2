@@ -3606,6 +3606,11 @@ case "$host" in
                    SOURCES="$SOURCES $srcdir/src/filesystem/android/*.c"
                    have_filesystem=yes
                ;;
+               ohos)
+                   AC_DEFINE(SDL_FILESYSTEM_OHOS, 1, [ ])
+                   SOURCES="$SOURCES $srcdir/src/filesystem/ohos/*.c"
+                   have_filesystem=yes
+               ;;
                *)
                    AC_DEFINE(SDL_FILESYSTEM_UNIX, 1, [ ])
                    SOURCES="$SOURCES $srcdir/src/filesystem/unix/*.c"

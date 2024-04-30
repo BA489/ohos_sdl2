@@ -103,6 +103,11 @@ typedef struct ANativeWindow ANativeWindow;
 typedef void *EGLSurface;
 #endif
 
+#if defined(SDL_VIDEO_DRIVER_OHOS)
+typedef struct ANativeWindow ANativeWindow;
+typedef void *EGLSurface;
+#endif
+
 #if defined(SDL_VIDEO_DRIVER_VIVANTE)
 #include "SDL_egl.h"
 #endif
@@ -131,6 +136,7 @@ typedef enum
     SDL_SYSWM_MIR,  /* no longer available, left for API/ABI compatibility. Remove in 2.1! */
     SDL_SYSWM_WINRT,
     SDL_SYSWM_ANDROID,
+    SDL_SYSWM_OHOS,
     SDL_SYSWM_VIVANTE,
     SDL_SYSWM_OS2,
     SDL_SYSWM_HAIKU
@@ -278,6 +284,14 @@ struct SDL_SysWMinfo
             ANativeWindow *window;
             EGLSurface surface;
         } android;
+#endif
+        
+#if defined(SDL_VIDEO_DRIVER_OHOS)
+        struct
+        {
+            ANativeWindow *window;
+            EGLSurface surface;
+        } ohos;
 #endif
 
 #if defined(SDL_VIDEO_DRIVER_VIVANTE)

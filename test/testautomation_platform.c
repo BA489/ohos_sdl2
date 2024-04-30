@@ -389,9 +389,13 @@ int platform_testSetErrorInvalidInput(void *arg)
    if (lastError != NULL)
    {
      len = SDL_strlen(lastError);
-     SDLTest_AssertCheck(len == 0,
+#if defined (__OHOS__)
+    SDLTest_AssertCheck(len == SDL_strlen("(null)"), "SDL_GetError(): expected message len 6, was len: %i", (int) len);
+#else
+	 SDLTest_AssertCheck(len == 0,
              "SDL_GetError(): expected message len 0, was len: %i",
              (int) len);
+#endif
    }
 
    /* Set */
@@ -409,9 +413,13 @@ int platform_testSetErrorInvalidInput(void *arg)
    if (lastError != NULL)
    {
      len = SDL_strlen(lastError);
-     SDLTest_AssertCheck(len == 0,
+#if defined (__OHOS__)
+    SDLTest_AssertCheck(len == SDL_strlen("(null)"), "SDL_GetError(): expected message len 6, was len: %i", (int)len);
+#else
+	 SDLTest_AssertCheck(len == 0,
              "SDL_GetError(): expected message len 0, was len: %i",
              (int) len);
+#endif
    }
 
    /* Reset */

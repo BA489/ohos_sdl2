@@ -39,6 +39,8 @@ extern "C" {
 // Vulkan 1.0 version number
 #define VK_API_VERSION_1_0 VK_MAKE_VERSION(1, 0, 0)// Patch version should always be set to 0
 
+#define VK_API_VERSION_1_3 VK_MAKE_VERSION(1, 3, 0)
+
 #define VK_VERSION_MAJOR(version) ((uint32_t)(version) >> 22)
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)

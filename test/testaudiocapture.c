@@ -90,7 +90,11 @@ int
 main(int argc, char **argv)
 {
     /* (argv[1] == NULL means "open default device.") */
+#ifdef __OHOS__
+    const char *devname = NULL;
+#else
     const char *devname = argv[1];
+#endif
     SDL_AudioSpec wanted;
     int devcount;
     int i;
@@ -119,7 +123,11 @@ main(int argc, char **argv)
 
     SDL_zero(wanted);
     wanted.freq = 44100;
+#ifdef __OHOS__
+    wanted.format = AUDIO_S16;
+#else
     wanted.format = AUDIO_F32SYS;
+#endif
     wanted.channels = 1;
     wanted.samples = 4096;
     wanted.callback = NULL;
@@ -144,8 +152,12 @@ main(int argc, char **argv)
             devname ? "'" : "",
             devname ? devname : "[[default]]",
             devname ? "'" : "");
-
+#ifdef __OHOS__
+    devname = SDL_GetAudioDeviceName(0, 1);
+    devid_in = SDL_OpenAudioDevice(devname, SDL_TRUE, &spec, &spec, 0);
+#else
     devid_in = SDL_OpenAudioDevice(argv[1], SDL_TRUE, &spec, &spec, 0);
+#endif
     if (!devid_in) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't open an audio device for capture: %s!\n", SDL_GetError());
         SDL_Quit();
