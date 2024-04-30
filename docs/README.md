@@ -49,6 +49,7 @@ More documentation and FAQs are available online at [the wiki](http://wiki.libsd
 - [WinCE](README-wince.md)
 - [Windows](README-windows.md)
 - [WinRT](README-winrt.md)
+- [Harmony](README-openharmony.md)
 
 If you need help with the library, or just want to discuss SDL related
 issues, you can join the [developers mailing list](http://www.libsdl.org/mailing-list.php)

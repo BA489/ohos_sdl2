@@ -1037,6 +1037,156 @@ if(ANDROID)
   endif()
 
   CheckPTHREAD()
+elseif(OHOS)
+  if(NOT CJSON_USE_SYSTEM_LIBS)
+	if(NOT DEFINED CJSON_SOURCE_DIR)
+		message(STATUS "Downloading cjson to ${CMAKE_BINARY_DIR}/cjson-source (define CJSON_SOURCE_DIR to avoid it)")
+		configure_file(cmake/DownloadCJSON.cmake "${CMAKE_BINARY_DIR}/cjson-download/CMakeLists.txt")
+		execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM} .
+			WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/cjson-download")
+		execute_process(COMMAND "${CMAKE_COMMAND}" --build .
+			WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/cjson-download")
+		set(CJSON_SOURCE_DIR "${CMAKE_BINARY_DIR}/cjson-source" CACHE STRING "cjson source directory")
+	endif()
+  endif()
+  if(NOT TARGET cjson)
+	if(NOT CJSON_USE_SYSTEM_LIBS)
+	        set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE CACHE BOOL "")
+		set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
+		set(ENABLE_CJSON_TEST OFF CACHE BOOL "")
+		add_subdirectory(
+			"${CJSON_SOURCE_DIR}"
+			"${CMAKE_BINARY_DIR}/cjson")
+		include_directories(${CJSON_SOURCE_DIR})
+	else()
+		add_library(cjson SHARED IMPORTED)
+		find_library(CJSON_LIBRARY cjson PATHS "${CJSON_SOURCE_DIR}/lib")
+		if(NOT CJSON_LIBRARY)
+			message(FATAL_ERROR "Cannot find cjson")
+		endif()
+		target_include_directories(cjson INTERFACE "${CJSON_SOURCE_DIR}/include")
+		set_property(TARGET cjson PROPERTY IMPORTED_LOCATION "${CJSON_LIBRARY}")
+		set_property(TARGET cjson PROPERTY IMPORTED_IMPLIB "${CJSON_LIBRARY}")
+	endif()
+  endif()
+  remove_definitions(-DUSING_GENERATED_CONFIG_H)
+  find_library(OHOS_ACE_LIBRARY NAMES libace_napi.z.so ace)
+  find_library(OHOS_LOG_LIBRARY NAMES libhilog_ndk.z.so hilog)
+  find_library(OHOS_NDK_LIBRARY NAMES libace_ndk.z.so ndk)
+  find_library(OHOS_RAWFILE_LIBRARY NAMES librawfile.z.so rawfile)
+  find_library(OHOS_PIXELMAP_LIBRARY NAMES libpixelmap_ndk.z.so pixelmap)
+  list(APPEND EXTRA_LIBS ${OHOS_ACE_LIBRARY} ${OHOS_LOG_LIBRARY} ${OHOS_NDK_LIBRARY} ${OHOS_RAWFILE_LIBRARY} ${OHOS_PIXELMAP_LIBRARY} cjson)
+  add_definitions(-DOHOS_PLATFORM)
+  file(GLOB OHOS_CORE_SOURCES ${SDL2_SOURCE_DIR}/src/core/ohos/*.c)
+  file(GLOB OHOS_CORE_SOURCES_CPP ${SDL2_SOURCE_DIR}/src/core/ohos/*.cpp)
+  set(SOURCE_FILES ${SOURCE_FILES} ${OHOS_CORE_SOURCES} ${OHOS_CORE_SOURCES_CPP})
+  # SDL_spinlock.c Needs to be compiled in ARM mode.
+  # There seems to be no better way currently to set the ARM mode.
+  # see: https://issuetracker.google.com/issues/62264618
+  # Another option would be to set ARM mode to all compiled files
+  check_c_compiler_flag(-marm HAVE_ARM_MODE)
+  if(HAVE_ARM_MODE)
+    set_source_files_properties(${SDL2_SOURCE_DIR}/src/atomic/SDL_spinlock.c PROPERTIES COMPILE_FLAGS -marm)
+  endif()
+
+  if(SDL_AUDIO)
+    set(SDL_AUDIO_DRIVER_OHOS 1)
+    file(GLOB OHOS_AUDIO_SOURCES ${SDL2_SOURCE_DIR}/src/audio/ohos/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${OHOS_AUDIO_SOURCES})
+    set(HAVE_SDL_AUDIO TRUE)
+    #link ohos audio library
+    find_library(OHOS_DL_LIBRARY NAMES libohaudio.so ohaudio)
+    list(APPEND EXTRA_LIBS ${OHOS_DL_LIBRARY})
+  endif()
+  if(SDL_FILESYSTEM)
+    set(SDL_FILESYSTEM_OHOS 1)
+    file(GLOB OHOS_FILESYSTEM_SOURCES ${SDL2_SOURCE_DIR}/src/filesystem/ohos/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${OHOS_FILESYSTEM_SOURCES})
+    set(HAVE_SDL_FILESYSTEM TRUE)
+  endif()
+  if(SDL_JOYSTICK)
+    CheckHIDAPI()
+    set(SDL_JOYSTICK_OHOS 1)
+    file(GLOB OHOS_JOYSTICK_SOURCES ${SDL2_SOURCE_DIR}/src/joystick/ohos/*.c ${SDL2_SOURCE_DIR}/src/joystick/steam/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${OHOS_JOYSTICK_SOURCES})
+    set(HAVE_SDL_JOYSTICK TRUE)
+  endif()
+  if(SDL_LOADSO)
+    set(SDL_LOADSO_DLOPEN 1)
+    file(GLOB LOADSO_SOURCES ${SDL2_SOURCE_DIR}/src/loadso/dlopen/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${LOADSO_SOURCES})
+    set(HAVE_SDL_LOADSO TRUE)
+  endif()
+  if(SDL_POWER)
+    set(SDL_POWER_OHOS 1)
+    file(GLOB OHOS_POWER_SOURCES ${SDL2_SOURCE_DIR}/src/power/ohos/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${OHOS_POWER_SOURCES})
+    set(HAVE_SDL_POWER TRUE)
+  endif()
+  if(SDL_TIMERS)
+    set(SDL_TIMER_UNIX 1)
+    file(GLOB TIMER_SOURCES ${SDL2_SOURCE_DIR}/src/timer/unix/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${TIMER_SOURCES})
+    set(HAVE_SDL_TIMERS TRUE)
+  endif()
+  if(SDL_SENSOR)
+    set(SDL_SENSOR_OHOS 1)
+    set(HAVE_SDL_SENSORS TRUE)
+    file(GLOB OHOS_SENSOR_SOURCES ${SDL2_SOURCE_DIR}/src/sensor/ohos/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${OHOS_SENSOR_SOURCES})
+  endif()
+  if(SDL_VIDEO)
+    set(SDL_VIDEO_VULKAN 1)
+    set(SDL_VIDEO_DRIVER_OHOS 1)
+    file(GLOB OHOS_VIDEO_SOURCES ${SDL2_SOURCE_DIR}/src/video/ohos/*.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${OHOS_VIDEO_SOURCES})
+    set(HAVE_SDL_VIDEO TRUE)
+
+    if (HAVE_HIDAPI)
+        list(APPEND EXTRA_LIBS hidapi)
+    endif()
+
+    #enable gles
+    if(VIDEO_OPENGLES)
+      set(SDL_VIDEO_OPENGL_EGL 1)
+      set(HAVE_VIDEO_OPENGLES TRUE)
+      set(SDL_VIDEO_OPENGL_ES2 1)
+      set(SDL_VIDEO_RENDER_OGL_ES2 1)
+    endif()
+
+    CHECK_C_SOURCE_COMPILES("
+    #if defined(__ARM_ARCH) && __ARM_ARCH < 7
+    #error Vulkan doesn't work on this configuration
+    #endif
+    int main()
+    {
+        return 0;
+    }
+    " VULKAN_PASSED_OHOS_CHECKS)
+    if(NOT VULKAN_PASSED_OHOS_CHECKS)
+      set(VIDEO_VULKAN OFF)
+      message(STATUS "Vulkan doesn't work on this configuration")
+    endif()
+    if(RPATH)
+      set(SDL_RLD_FLAGS "")
+      if(BSDI OR FREEBSD OR LINUX OR NETBSD)
+        set(CMAKE_REQUIRED_FLAGS "-Wl,--enable-new-dtags")
+        check_c_compiler_flag("" HAVE_ENABLE_NEW_DTAGS)
+        set(CMAKE_REQUIRED_FLAGS ${ORIG_CMAKE_REQUIRED_FLAGS})
+        if(HAVE_ENABLE_NEW_DTAGS)
+          set(SDL_RLD_FLAGS "-Wl,-rpath,\${libdir} -Wl,--enable-new-dtags")
+        else()
+          set(SDL_RLD_FLAGS "-Wl,-rpath,\${libdir}")
+        endif()
+      elseif(SOLARIS)
+        set(SDL_RLD_FLAGS "-R\${libdir}")
+      endif()
+      set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+      set(HAVE_RPATH TRUE)
+    endif()
+  endif()
+
+  CheckPTHREAD()
 
 elseif(EMSCRIPTEN)
   # Hide noisy warnings that intend to aid mostly during initial stages of porting a new
@@ -2044,11 +2194,14 @@ if(SDL_SHARED)
     set_target_properties(SDL2 PROPERTIES
       MACOSX_RPATH 1
       OUTPUT_NAME "SDL2-${LT_RELEASE}")
-  elseif(UNIX AND NOT ANDROID)
+  elseif(UNIX AND NOT ANDROID AND NOT OHOS)
     set_target_properties(SDL2 PROPERTIES
       VERSION ${LT_VERSION}
       SOVERSION ${LT_REVISION}
       OUTPUT_NAME "SDL2-${LT_RELEASE}")
+  elseif(OHOS)
+    set_target_properties(SDL2 PROPERTIES
+      OUTPUT_NAME "SDL2")
   else()
     set_target_properties(SDL2 PROPERTIES
       VERSION ${SDL_VERSION}
@@ -2179,7 +2332,7 @@ if(NOT (WINDOWS OR CYGWIN))
   if(SDL_SHARED)
     set(SOEXT ${CMAKE_SHARED_LIBRARY_SUFFIX}) # ".so", ".dylib", etc.
     get_target_property(SONAME SDL2 OUTPUT_NAME)
-    if(NOT ANDROID)
+    if(NOT (ANDROID OR OHOS))
         install(CODE "
           execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
             \"lib${SONAME}${SOPOSTFIX}${SOEXT}\" \"libSDL2${SOPOSTFIX}${SOEXT}\"

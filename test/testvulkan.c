@@ -252,7 +252,11 @@ static void createInstance(void)
 
 
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+#ifdef __OHOS__
+    appInfo.apiVersion = VK_API_VERSION_1_3;
+#else
     appInfo.apiVersion = VK_API_VERSION_1_0;
+#endif
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pApplicationInfo = &appInfo;
     if(!SDL_Vulkan_GetInstanceExtensions(NULL, &extensionCount, NULL))

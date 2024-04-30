@@ -40,7 +40,9 @@ SDLTest_TestSuiteReference *testSuites[] =  {
     &platformTestSuite,
     &rectTestSuite,
     &renderTestSuite,
+#if !defined (__OHOS__)
     &rwopsTestSuite,
+#endif
     &sdltestTestSuite,
     &stdlibTestSuite,
     &surfaceTestSuite,

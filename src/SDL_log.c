@@ -35,6 +35,8 @@
 
 #if defined(__ANDROID__)
 #include <android/log.h>
+#elif defined(__OHOS__)
+#include <hilog/log.h>
 #endif
 
 #define DEFAULT_PRIORITY                SDL_LOG_PRIORITY_CRITICAL
@@ -42,6 +44,8 @@
 #define DEFAULT_APPLICATION_PRIORITY    SDL_LOG_PRIORITY_INFO
 #define DEFAULT_TEST_PRIORITY           SDL_LOG_PRIORITY_VERBOSE
 
+#define LOG_NULL                        0
+#define LOG_VERBOSE                     LOG_DEBUG /* The log level of SDL is one more than that of Hongmeng, so add a LOG_DEBUG to fill in */
 typedef struct SDL_LogLevel
 {
     int category;
@@ -92,6 +96,27 @@ static int SDL_android_priority[SDL_NUM_LOG_PRIORITIES] = {
 };
 #endif /* __ANDROID__ */
 
+#ifdef __OHOS__
+static const char *SDL_category_prefixes[SDL_LOG_CATEGORY_RESERVED2] = {
+    "APP",
+    "ERROR",
+    "SYSTEM",
+    "AUDIO",
+    "VIDEO",
+    "RENDER",
+    "INPUT"
+};
+
+static int SDL_ohos_priority[SDL_NUM_LOG_PRIORITIES] = {
+    LOG_NULL,
+    LOG_VERBOSE,
+    LOG_DEBUG,
+    LOG_INFO,
+    LOG_WARN,
+    LOG_ERROR,
+    LOG_FATAL
+};
+#endif /* __OHOS__ */
 
 void
 SDL_LogSetAllPriority(SDL_LogPriority priority)
@@ -261,6 +286,20 @@ GetCategoryPrefix(int category)
 }
 #endif /* __ANDROID__ */
 
+#ifdef __OHOS__
+static const char *
+GetCategoryPrefix(int category)
+{
+    if (category < SDL_LOG_CATEGORY_RESERVED2) {
+        return SDL_category_prefixes[category];
+    }
+    if (category < SDL_LOG_CATEGORY_CUSTOM) {
+        return "RESERVED";
+    }
+    return "CUSTOM";
+}
+#endif /* __OHOS__ */
+
 void
 SDL_LogMessageV(int category, SDL_LogPriority priority, const char *fmt, va_list ap)
 {
@@ -399,6 +438,13 @@ SDL_LogOutput(void *userdata, int category, SDL_LogPriority priority,
 
         SDL_snprintf(tag, SDL_arraysize(tag), "SDL/%s", GetCategoryPrefix(category));
         __android_log_write(SDL_android_priority[priority], tag, message);
+    }
+#elif defined(__OHOS__)
+    {
+        char tag[32];
+
+        SDL_snprintf(tag, SDL_arraysize(tag), "SDL/%s", GetCategoryPrefix(category));
+        OH_LOG_Print(LOG_APP, SDL_ohos_priority[priority], 0, tag, "%{public}s", message);
     }
 #elif defined(__APPLE__) && (defined(SDL_VIDEO_DRIVER_COCOA) || defined(SDL_VIDEO_DRIVER_UIKIT))
     /* Technically we don't need Cocoa/UIKit, but that's where this function is defined for now.
