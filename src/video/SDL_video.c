@@ -1639,6 +1639,9 @@ SDL_RecreateWindow(SDL_Window * window, Uint32 flags)
 {
     SDL_bool loaded_opengl = SDL_FALSE;
 
+#ifdef __OHOS__
+    window->flags |= SDL_WINDOW_RECREATE;
+#endif
     if ((flags & SDL_WINDOW_OPENGL) && !_this->GL_CreateContext) {
         return SDL_SetError("OpenGL support is either not configured in SDL "
                             "or not available in current SDL video driver "
@@ -1727,6 +1730,9 @@ SDL_RecreateWindow(SDL_Window * window, Uint32 flags)
     }
 
     SDL_FinishWindowCreation(window, flags);
+#ifdef __OHOS__
+    window->flags &= ~SDL_WINDOW_RECREATE;
+#endif
 
     return 0;
 }
