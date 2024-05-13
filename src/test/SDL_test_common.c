@@ -1044,8 +1044,8 @@ SDLTest_CommonInit(SDLTest_CommonState * state)
             } else {
                 SDL_strlcpy(title, state->window_title, SDL_arraysize(title));
             }
-            state->windows[i] =
-                SDL_CreateWindowFrom((void *)g_rootView);
+            state->windows[i] = SDL_CreateWindow(title, r.x, r.y, r.w, r.h, state->window_flags);
+//             SDL_CreateWindowFrom((void *)g_rootView);
             if (!state->windows[i]) {
                 SDL_Log("Couldn't create window: %s\n",
                         SDL_GetError());
