@@ -472,6 +472,9 @@ SDL_VideoInit(const char *driver_name)
 
     /* Check to make sure we don't overwrite '_this' */
     if (_this != NULL) {
+#ifdef __OHOS__
+        return 0;
+#endif
         SDL_VideoQuit();
     }
 
