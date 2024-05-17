@@ -1616,7 +1616,11 @@ SDL_CreateWindowFrom(const void *data)
     }
     window->magic = &_this->window_magic;
     window->id = _this->next_object_id++;
+#ifdef __OHOS__
+    window->flags = SDL_WINDOW_FOREIGN_OHOS;
+#else
     window->flags = SDL_WINDOW_FOREIGN;
+#endif
     window->last_fullscreen_flags = window->flags;
     window->is_destroying = SDL_FALSE;
     window->opacity = 1.0f;
