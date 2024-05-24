@@ -25,7 +25,6 @@
 #include "SDL_test.h"
 
 #include <stdio.h>
-#include "../../application/gloable.h"
 
 static const char *video_usage[] = {
     "[--video driver]", "[--renderer driver]", "[--gldebug]",
@@ -1044,7 +1043,8 @@ SDLTest_CommonInit(SDLTest_CommonState * state)
             } else {
                 SDL_strlcpy(title, state->window_title, SDL_arraysize(title));
             }
-            state->windows[i] = SDL_CreateWindow(title, r.x, r.y, r.w, r.h, state->window_flags);
+            state->windows[i] =
+                SDL_CreateWindow(title, r.x, r.y, r.w, r.h, state->window_flags);
             if (!state->windows[i]) {
                 SDL_Log("Couldn't create window: %s\n",
                         SDL_GetError());
