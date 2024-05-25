@@ -1124,6 +1124,12 @@ close_audio_device(SDL_AudioDevice * device)
     SDL_AtomicSet(&device->enabled, 0);
     current_audio.impl.UnlockDevice(device);
 
+#ifdef __OHOS__
+    if (device->hidden != NULL) {
+        current_audio.impl.CloseDevice(device);
+    }
+#endif
+
     if (device->thread != NULL) {
         SDL_WaitThread(device->thread, NULL);
     }
@@ -1142,9 +1148,11 @@ close_audio_device(SDL_AudioDevice * device)
         }
     }
 
+#ifndef __OHOS__
     if (device->hidden != NULL) {
         current_audio.impl.CloseDevice(device);
     }
+#endif
 
     SDL_FreeDataQueue(device->buffer_queue);
 

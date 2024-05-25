@@ -96,11 +96,6 @@ static int32_t OHOSAUDIO_AudioRenderer_OnWriteData(OH_AudioRenderer *renderer, v
             return -1;
         }
         frameSize = length;
-        device = (SDL_AudioDevice *)userData;
-        if (device != NULL) {
-            device->callbackspec.size = frameSize;
-            device->spec.size = frameSize;
-        }
         SDL_memset(rendererBuffer, 0, length);
         SDL_CondBroadcast(empty);
     }
@@ -132,6 +127,8 @@ void *OHOSAUDIO_NATIVE_GetAudioBuf(SDL_AudioDevice *device)
            SDL_AtomicGet(&isShutDown) == SDL_FALSE) {
         SDL_CondWait(empty, audioPlayLock);
     }
+    device->callbackspec.size = frameSize;
+    device->spec.size = frameSize;
     SDL_UnlockMutex(audioPlayLock);
     return rendererBuffer;
 }
@@ -443,6 +440,12 @@ static int OHOSAUDIO_Start(int iscapture, SDL_AudioSpec *spec, int audioFormatBi
             return -1;
         }
     } else {
+        SDL_AtomicSet(&stateFlag, SDL_FALSE);
+        audioPlayLock = SDL_CreateMutex();
+        empty = SDL_CreateCond();
+        full = SDL_CreateCond();
+        SDL_AtomicSet(&isShutDown, SDL_FALSE);
+        SDL_AtomicSet(&stateFlag, SDL_FALSE);
         iRet = OH_AudioRenderer_Start(audioRenderer);
         if (AUDIOSTREAM_SUCCESS != iRet) {
             OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, "OpenAudioDevice",
@@ -450,12 +453,6 @@ static int OHOSAUDIO_Start(int iscapture, SDL_AudioSpec *spec, int audioFormatBi
             OHOSAUDIO_NATIVE_CloseAudioDevice(iscapture);
             return -1;
         }
-        SDL_AtomicSet(&stateFlag, SDL_FALSE);
-        audioPlayLock = SDL_CreateMutex();
-        empty = SDL_CreateCond();
-        full = SDL_CreateCond();
-        SDL_AtomicSet(&isShutDown, SDL_FALSE);
-        SDL_AtomicSet(&stateFlag, SDL_FALSE);
     }
     return 0;
 }
