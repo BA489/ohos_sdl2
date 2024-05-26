@@ -710,7 +710,9 @@ SDL_RunAudio(void *devicep)
     /* Loop, filling the audio buffers */
     while (!SDL_AtomicGet(&device->shutdown)) {
         current_audio.impl.BeginLoopIteration(device);
+    #ifndef __OHOS__
         data_len = device->callbackspec.size;
+    #endif
 
         /* Fill the current buffer with sound */
         if (!device->stream && SDL_AtomicGet(&device->enabled)) {
@@ -725,6 +727,9 @@ SDL_RunAudio(void *devicep)
                Streaming playback uses work_buffer, too. */
             data = NULL;
         }
+    #ifdef __OHOS__
+        data_len = device->callbackspec.size;
+    #endif
 
         if (data == NULL) {
             data = device->work_buffer;
@@ -1123,6 +1128,12 @@ close_audio_device(SDL_AudioDevice * device)
     SDL_AtomicSet(&device->shutdown, 1);
     SDL_AtomicSet(&device->enabled, 0);
     current_audio.impl.UnlockDevice(device);
+
+#ifdef __OHOS__
+    if (device->hidden != NULL) {
+        current_audio.impl.PrepareToClose(device);
+    }
+#endif
 
     if (device->thread != NULL) {
         SDL_WaitThread(device->thread, NULL);
