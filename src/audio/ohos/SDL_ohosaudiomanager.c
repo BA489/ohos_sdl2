@@ -476,7 +476,7 @@ static int OHOSAUDIO_Start(int iscapture, SDL_AudioSpec *spec, int audioFormatBi
             OHOSAUDIO_NATIVE_CloseAudioDevice(iscapture);
             return -1;
         }
-        if (OHOSAUDIO_WaitInitRenderBuffer(void) < 0) {
+        if (OHOSAUDIO_WaitInitRenderBuffer() < 0) {
             OHOSAUDIO_NATIVE_CloseAudioDevice(iscapture);
             return -1;
         }
@@ -630,7 +630,6 @@ static OHOSAUDIO_NATIVE_CloseRender(void)
         SDL_DestroyCond(full);
         full = NULL;
     }
-    frameSize = -1;
 }
 
 void OHOSAUDIO_NATIVE_PrepareClose(void)
