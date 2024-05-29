@@ -32,7 +32,8 @@ extern "C" {
 #endif
 
 /* Called by the JNI layer when the screen changes size or format */
-extern void OHOS_SetScreenResolution(int deviceWidth, int deviceHeight, Uint32 format, float rate);
+extern void OHOS_SetScreenResolution(int deviceWidth, int deviceHeight, Uint32 format,
+                                     float rate, double screenDensity);
 extern void OHOS_SendResize(SDL_Window *window);
 extern void OHOS_SetScreenSize(int surfaceWidth, int surfaceHeight);
 
@@ -49,9 +50,9 @@ extern int g_ohosSurfaceWidth;
 extern int g_ohosSurfaceHeight;
 extern int g_ohosDeviceWidth;
 extern int g_ohosDeviceHeight;
-extern SDL_sem *OHOS_PauseSem, *OHOS_ResumeSem;
-extern SDL_mutex *OHOS_PageMutex;
-extern SDL_Window *g_ohosWindow;
+extern SDL_sem *g_ohosPauseSem, *g_ohosResumeSem;
+extern SDL_mutex *g_ohosPageMutex;
+extern double g_ohosScreenDensity;
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

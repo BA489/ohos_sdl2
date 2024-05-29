@@ -25,6 +25,7 @@ import {
 } from '../service/ResponseNative'
 
 import {
+  setWindowId,
   setResourceManager,
   nativePause,
   nativeResume,
@@ -36,36 +37,149 @@ import {
 } from '../service/InvokeNative'
 
 import pointer from '@ohos.multimodalInput.pointer'
-import sdl from 'libSDL2d.so'
+import sdl from 'libSDL2.so'
 import common from '@ohos.app.ability.common'
 import window from '@ohos.window'
 import { BusinessError } from '@ohos.base'
 import { Context } from '@ohos.abilityAccessCtrl'
 import image from '@ohos.multimedia.image'
 
-export let sdlPageContext: common.UIAbilityContext
+import {
+  getNodeByWindowId,
+  addRootNode,
+  addChildNode,
+  removeChildNode,
+  resizeNode,
+  adjustNodeZOrder,
+  setNodeVisibility,
+  getNodeRect,
+  getObject,
+  raiseNode,
+  lowerNode,
+  moveNode,
+  reParentNode,
+  setNodeBorderColor,
+  setNodeBorderWidth,
+  setNodeParams,
+  getXcomponentId
+} from './adapter_c/utils/AdapterTs'
+import { UIContext } from '@ohos.arkui.UIContext'
+import { ViewNodeController, NodeParams } from './adapter_c/common/Node';
+import {
+  XComponentModel
+} from './adapter_c/common/ComponentModel'
+
+let sdlPageContext: common.UIAbilityContext
 
 export interface NapiCallback {
-  setTitle(title: string): void;
+  getNodeByWindowId(windowId: number): ViewNodeController | undefined
 
-  setWindowStyle(fullscree: boolean): void;
+  addChildNode(nodeControllerParent: ViewNodeController, nodeParams?: NodeParams): ViewNodeController
 
-  setOrientation(w: number, h: number, resizable: number, hint: string): void;
+  removeChildNode(nodeControllerChild: ViewNodeController): void
 
-  shouldMinimizeOnFocusLoss(): void;
+  resizeNode(nodeController: ViewNodeController, width: string, height: string): void
 
-  showTextInput(x: number, y: number, w: number, h: number): void;
+  adjustNodeZOrder(nodeController: ViewNodeController, zIndex: number): void
 
-  hideTextInput(): void;
+  setNodeVisibility(nodeController: ViewNodeController, visibility: number): void
 
-  requestPermission(permission: string): void;
+  getNodeRect(nodeController: ViewNodeController): number[]
 
-  setPointer(cursorID: number): void;
+  moveNode(nodeController: ViewNodeController, position_x: Length, position_y: Length): void
 
-  setCustomCursorandCreate(pixelmapCreated: image.PixelMap, focusX: number, focusY: number): void;
+  raiseNode(nodeController: ViewNodeController): void
+
+  lowerNode(nodeController: ViewNodeController): void
+
+  reParentNode(nodeControllerParentNew: ViewNodeController, nodeControllerChild: ViewNodeController): void
+
+  setNodeBorderColor(node: ViewNodeController, borderColor: string): ViewNodeController
+
+  setNodeBorderWidth(node: ViewNodeController, borderWidth: Length): ViewNodeController
+
+  setNodeParams(node: ViewNodeController, nodeParams: NodeParams): ViewNodeController
+
+  setTitle(title: string): void
+
+  setWindowStyle(fullscree: boolean): void
+
+  setOrientation(w: number, h: number, resizable: number, hint: string): void
+
+  shouldMinimizeOnFocusLoss(): void
+
+  showTextInput(x: number, y: number, w: number, h: number): void
+
+  hideTextInput(): void
+
+  requestPermission(permission: string): void
+
+  setPointer(cursorID: number): void
+
+  setCustomCursorandCreate(pixelmapCreated: image.PixelMap, focusX: number, focusY: number): void
 }
 
 export class ArkNapiCallback implements NapiCallback {
+  getNodeByWindowId(windowId: number) {
+    return getNodeByWindowId(windowId);
+  }
+
+  addChildNode(nodeControllerParent: ViewNodeController, nodeParams?: NodeParams) {
+    return addChildNode(nodeControllerParent, nodeParams)
+  }
+
+  removeChildNode(nodeControllerChild: ViewNodeController) {
+    removeChildNode(nodeControllerChild);
+  }
+
+  resizeNode(nodeController: ViewNodeController, width: string, height: string) {
+    resizeNode(nodeController, width, height)
+  }
+
+  adjustNodeZOrder(nodeController: ViewNodeController, zIndex: number) {
+    adjustNodeZOrder(nodeController, zIndex)
+  }
+
+  setNodeVisibility(nodeController: ViewNodeController, visibility: number) {
+    setNodeVisibility(nodeController, visibility)
+  }
+
+  getNodeRect(nodeController: ViewNodeController) {
+    return getNodeRect(nodeController)
+  }
+
+  moveNode(nodeController: ViewNodeController, position_x: Length, position_y: Length) {
+    moveNode(nodeController, position_x, position_y)
+  }
+
+  getXcomponentId(nodeController: ViewNodeController) {
+    return getXcomponentId(nodeController)
+  }
+
+  raiseNode(nodeController: ViewNodeController) {
+    raiseNode(nodeController)
+  }
+
+  lowerNode(nodeController: ViewNodeController) {
+    lowerNode(nodeController)
+  }
+
+  reParentNode(nodeControllerParentNew: ViewNodeController, nodeControllerChild: ViewNodeController) {
+    reParentNode(nodeControllerParentNew, nodeControllerChild)
+  }
+
+  setNodeBorderColor(node: ViewNodeController, borderColor: string) {
+    return setNodeBorderColor(node, borderColor)
+  }
+
+  setNodeBorderWidth(node: ViewNodeController, borderWidth: Length) {
+    return setNodeBorderWidth(node, borderWidth)
+  }
+
+  setNodeParams(node: ViewNodeController, nodeParams: NodeParams) {
+    return setNodeParams(node, nodeParams)
+  }
+
   setCustomCursorandCreate(pixelmapCreated: image.PixelMap, focusX: number, focusY: number) {
     window.getLastWindow(sdlPageContext, (error: BusinessError, windowClass: window.Window) => {
       if (error.code) {
@@ -80,8 +194,6 @@ export class ArkNapiCallback implements NapiCallback {
       try {
         pointer.setCustomCursor(windowId, pixelmapCreated, focusX, focusY).then(() => {
           console.log(`Successfully set custom pointer`)
-        }).catch(error => {
-          console.log('Failed to set the custom pointer, error=' + error)
         })
       } catch (error) {
         console.log(`Failed to set the custom pointer, error=${JSON.stringify(error)}, msg=${JSON.stringify(`message`)}`)
@@ -204,7 +316,6 @@ export class ArkNapiCallback implements NapiCallback {
   nAPISetWindowResize(x: number, y: number, w: number, h: number): void {
 
   }
-
 }
 
 let callbackRef: NapiCallback = new ArkNapiCallback()
@@ -254,8 +365,6 @@ if (nextNativeState == NativeState.PAUSED) {
 
 // Try a transition to resumed state
 if (nextNativeState == NativeState.RESUMED) {
-  sdl.init(callbackRef)
-  sdl.sdlAppEntry("libentry.so", "main")
   currentNativeState = nextNativeState
 }
 }
@@ -273,19 +382,20 @@ function pauseNativeThread(): void {
 }
 
 export function notifySdlPageShow(): void {
-  onNativeFocusChanged(true)
   resumeNativeThread()
 }
 
 export function notifySdlPageHide(): void {
-  onNativeFocusChanged(false)
   pauseNativeThread()
 }
 
-export function notifySdlAboutToAppear(context: common.UIAbilityContext, resourceMannagerContext: Context): void {
-  sdlPageContext = context;
+export function notifySdlAboutToAppear(resourceMannagerContext: Context, windowId: number): void {
+  sdlPageContext = resourceMannagerContext as common.UIAbilityContext;
   setResourceManager(resourceMannagerContext)
+  setWindowId(windowId)
   setScreenResolution()
+  sdl.init(callbackRef)
+  sdl.sdlAppEntry("libentry.so", "main")
 }
 
 export function notifySdlAboutToDisappear() {

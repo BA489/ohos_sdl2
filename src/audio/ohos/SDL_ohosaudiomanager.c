@@ -35,23 +35,23 @@
  * Audio support
  */
 static int captureBufferLength = 0;
-static int renderBufferLength = 0;
 
 static unsigned char *rendererBuffer = NULL;
-static int rendererBufferLen = 0;
-static int rendererBufferReadPos = 0;
+static int ohosFrameSize = -1;
 
 static OH_AudioStreamBuilder *builder = NULL;
 static OH_AudioStreamBuilder *builder2 = NULL;
 static OH_AudioCapturer *audioCapturer = NULL;
 static OH_AudioRenderer *audioRenderer = NULL;
 
-static SDL_atomic_t bAudioFeedDataFlag;
-static SDL_bool audioPlayCondition = SDL_FALSE;
+static SDL_atomic_t stateFlag;
+static SDL_atomic_t isShutDown;
 static SDL_mutex *audioPlayLock;
-static SDL_cond *audioPlayCond;
+static SDL_cond *full, *empty, *bufferCond;
 
 static OH_AudioStream_State gAudioRendorStatus;
+
+#define OHOS_RENDER_BUFFER_SHUTDOEN_LEN 1024
 
 /*
  * Audio Capturer Callbacks
@@ -83,40 +83,62 @@ static int32_t OHOSAUDIO_AudioCapturer_OnError(OH_AudioCapturer *capturer, void 
 /*
  * Audio Renderer Callbacks
  */
-static int32_t OHOSAUDIO_AudioRenderer_OnWriteData(OH_AudioRenderer *renderer, void *userData,
-                                                   void *buffer, int32_t length)
+static int32_t OHOSAUDIO_AudioRenderer_OnWriteData(OH_AudioRenderer *renderer, void *userData, void *buffer,
+                                                   int32_t length)
 {
-    int iReadAvailableSpace = 0;
-    unsigned char *q = NULL;
-    int iLoopen = 0;
-    while (SDL_AtomicGet(&bAudioFeedDataFlag) == SDL_FALSE) {
-        SDL_Delay(DEFAULT_MS);
+    SDL_AudioDevice *device = NULL;
+    SDL_LockMutex(audioPlayLock);
+    if (ohosFrameSize == -1 && length > 0) {
+        ohosFrameSize = length;
+        SDL_CondBroadcast(bufferCond);
     }
-    iReadAvailableSpace = renderBufferLength - rendererBufferReadPos;
-    if (iReadAvailableSpace <= 0) {
-        SDL_LockMutex(audioPlayLock);
-        audioPlayCondition = SDL_TRUE;
-        rendererBufferReadPos = 0;
-        iReadAvailableSpace = renderBufferLength;
-        SDL_CondBroadcast(audioPlayCond);
-        SDL_AtomicSet(&bAudioFeedDataFlag, SDL_FALSE);
-        SDL_UnlockMutex(audioPlayLock);
-
-        while (SDL_AtomicGet(&bAudioFeedDataFlag) == SDL_FALSE) {
-            SDL_Delay(DEFAULT_MS);
-        }
+    while (SDL_AtomicGet(&stateFlag) == SDL_FALSE &&
+           SDL_AtomicGet(&isShutDown) == SDL_FALSE) {
+        SDL_CondWait(full, audioPlayLock);
     }
-    if (iReadAvailableSpace < length) {
-        iLoopen = iReadAvailableSpace;
+    if (SDL_AtomicGet(&isShutDown) == SDL_FALSE && rendererBuffer != NULL) {
+        SDL_memcpy(buffer, rendererBuffer, ohosFrameSize);
+        SDL_AtomicSet(&stateFlag, SDL_FALSE);
+        SDL_CondBroadcast(empty);
     } else {
-        iLoopen = length;
+        int value = 0;
+        device = (SDL_AudioDevice *)userData;
+        if (device != NULL) {
+            value = device->spec.silence;
+        }
+        SDL_memset(buffer, value, ohosFrameSize);
     }
-
-    q = rendererBuffer + rendererBufferReadPos;
-    SDL_memcpy(buffer, q, iLoopen);
-    SDL_memset(q, 0, iLoopen);
-    rendererBufferReadPos += iLoopen;
+    SDL_UnlockMutex(audioPlayLock);
     return 0;
+}
+
+void *OHOSAUDIO_NATIVE_GetAudioBuf(SDL_AudioDevice *device)
+{
+    SDL_LockMutex(audioPlayLock);
+    while ((rendererBuffer == NULL || SDL_AtomicGet(&stateFlag) == SDL_TRUE) &&
+           SDL_AtomicGet(&isShutDown) == SDL_FALSE) {
+        SDL_CondWait(empty, audioPlayLock);
+    }
+    // go here, may is shut down state and ohos render start failed, just init buffer
+    // make sure shutdown normal
+    if (rendererBuffer == NULL) {
+        rendererBuffer = SDL_malloc(OHOS_RENDER_BUFFER_SHUTDOEN_LEN);
+        device->callbackspec.size = OHOS_RENDER_BUFFER_SHUTDOEN_LEN;
+        device->spec.size = OHOS_RENDER_BUFFER_SHUTDOEN_LEN;
+    } else {
+        device->callbackspec.size = ohosFrameSize;
+        device->spec.size = ohosFrameSize;
+    }
+    SDL_UnlockMutex(audioPlayLock);
+    return rendererBuffer;
+}
+
+void OHOSAUDIO_NATIVE_WriteAudioBuf(void)
+{
+    SDL_LockMutex(audioPlayLock);
+    SDL_AtomicSet(&stateFlag, SDL_TRUE);
+    SDL_CondBroadcast(full);
+    SDL_UnlockMutex(audioPlayLock);
 }
 
 static int32_t OHOSAUDIO_AudioRenderer_OnStreamEvent(OH_AudioRenderer *renderer,
@@ -250,7 +272,7 @@ static int OHOSAUDIO_SetCapturerInfo(int iscapture)
     return 0;
 }
 
-static int OHOSAUDIO_SetCapturerCallback(int iscapture)
+static int OHOSAUDIO_SetCapturerCallback(SDL_AudioDevice *device, int iscapture)
 {
     OH_AudioStream_Result iRet;
     if (iscapture != 0) {
@@ -271,7 +293,7 @@ static int OHOSAUDIO_SetCapturerCallback(int iscapture)
         rendererCallbacks.OH_AudioRenderer_OnStreamEvent = OHOSAUDIO_AudioRenderer_OnStreamEvent;
         rendererCallbacks.OH_AudioRenderer_OnInterruptEvent = OHOSAUDIO_AudioRenderer_OnInterruptEvent;
         rendererCallbacks.OH_AudioRenderer_OnError = OHOSAUDIO_AudioRenderer_OnError;
-        iRet = OH_AudioStreamBuilder_SetRendererCallback(builder, rendererCallbacks, NULL);
+        iRet = OH_AudioStreamBuilder_SetRendererCallback(builder, rendererCallbacks, device);
         if (AUDIOSTREAM_SUCCESS != iRet) {
             OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, "OpenAudioDevice",
                 "SetRendererCallback Failed, iscapture=%{public}d, Error=%{public}d.", iscapture, iRet);
@@ -399,6 +421,28 @@ static int OHOSAUDIO_Format2Depth(SDL_AudioSpec *spec, int audioFormat)
     return audioFormatBitDepth;
 }
 
+static int OHOSAUDIO_WaitInitRenderBuffer(void)
+{
+    SDL_LockMutex(audioPlayLock);
+    while (ohosFrameSize == -1) {
+        SDL_CondWait(bufferCond, audioPlayLock);
+    }
+    SDL_free(rendererBuffer);
+    if (ohosFrameSize < 0) {
+        SDL_UnlockMutex(audioPlayLock);
+        return -1;
+    }
+    rendererBuffer = SDL_malloc(ohosFrameSize + 1);
+    if (rendererBuffer == NULL) {
+        SDL_UnlockMutex(audioPlayLock);
+        return -1;
+    }
+    SDL_memset(rendererBuffer, 0, ohosFrameSize);
+    SDL_CondBroadcast(empty);
+    SDL_UnlockMutex(audioPlayLock);
+    return 0;
+}
+
 static int OHOSAUDIO_Start(int iscapture, SDL_AudioSpec *spec, int audioFormatBitDepth)
 {
     OH_AudioStream_Result iRet;
@@ -418,19 +462,13 @@ static int OHOSAUDIO_Start(int iscapture, SDL_AudioSpec *spec, int audioFormatBi
             return -1;
         }
     } else {
-        renderBufferLength = spec->samples * spec->channels * audioFormatBitDepth;
-        if (NULL == rendererBuffer) {
-            rendererBuffer = (unsigned char *)SDL_malloc((unsigned long long)renderBufferLength *
-                sizeof(unsigned char));
-            if (NULL == rendererBuffer) {
-                OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, "OpenAudioDevice", "rendererBuffer alloc space faileed");
-                return -1;
-            }
-            SDL_memset(rendererBuffer, 0, renderBufferLength);
-        } else {
-            OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, "OpenAudioDevice",
-                "rendererBuffer alloc space Failed, Error=%{public}d.", iRet);
-        }
+        SDL_AtomicSet(&stateFlag, SDL_FALSE);
+        audioPlayLock = SDL_CreateMutex();
+        empty = SDL_CreateCond();
+        full = SDL_CreateCond();
+        bufferCond = SDL_CreateCond();
+        SDL_AtomicSet(&isShutDown, SDL_FALSE);
+        SDL_AtomicSet(&stateFlag, SDL_FALSE);
         iRet = OH_AudioRenderer_Start(audioRenderer);
         if (AUDIOSTREAM_SUCCESS != iRet) {
             OH_LOG_Print(LOG_APP, LOG_DEBUG, LOG_DOMAIN, "OpenAudioDevice",
@@ -438,10 +476,10 @@ static int OHOSAUDIO_Start(int iscapture, SDL_AudioSpec *spec, int audioFormatBi
             OHOSAUDIO_NATIVE_CloseAudioDevice(iscapture);
             return -1;
         }
-        SDL_AtomicSet(&bAudioFeedDataFlag, SDL_FALSE);
-        audioPlayLock = SDL_CreateMutex();
-        audioPlayCond = SDL_CreateCond();
-        audioPlayCondition = SDL_FALSE;
+        if (OHOSAUDIO_WaitInitRenderBuffer() < 0) {
+            OHOSAUDIO_NATIVE_CloseAudioDevice(iscapture);
+            return -1;
+        }
     }
     return 0;
 }
@@ -449,7 +487,7 @@ static int OHOSAUDIO_Start(int iscapture, SDL_AudioSpec *spec, int audioFormatBi
 /*
  * Audio Functions
  */
-int OHOSAUDIO_NATIVE_OpenAudioDevice(int iscapture, SDL_AudioSpec *spec)
+int OHOSAUDIO_NATIVE_OpenAudioDevice(SDL_AudioDevice *device, int iscapture, SDL_AudioSpec *spec)
 {
     int audioFormat;
     int audioFormatBitDepth = 0;
@@ -471,7 +509,7 @@ int OHOSAUDIO_NATIVE_OpenAudioDevice(int iscapture, SDL_AudioSpec *spec)
     }
     
     // Set the callback for the audio stream
-    if (OHOSAUDIO_SetCapturerCallback(iscapture) < 0) {
+    if (OHOSAUDIO_SetCapturerCallback(device, iscapture) < 0) {
         OHOSAUDIO_NATIVE_CloseAudioDevice(iscapture);
         return -1;
     }
@@ -502,22 +540,6 @@ int OHOSAUDIO_NATIVE_OpenAudioDevice(int iscapture, SDL_AudioSpec *spec)
     }
     OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "OpenAudioDevice", "OpenDevice end iscapture=%{public}d", iscapture);
     return 0;
-}
-
-void *OHOSAUDIO_NATIVE_GetAudioBuf(void)
-{
-    return rendererBuffer;
-}
-
-void OHOSAUDIO_NATIVE_WriteAudioBuf(void)
-{
-    SDL_LockMutex(audioPlayLock);
-    while (!audioPlayCondition) {
-        SDL_AtomicSet(&bAudioFeedDataFlag, SDL_TRUE);
-        SDL_CondWait(audioPlayCond, audioPlayLock);
-    }
-    audioPlayCondition = SDL_FALSE;
-    SDL_UnlockMutex(audioPlayLock);
 }
 
 int OHOSAUDIO_NATIVE_CaptureAudioBuffer(void *buffer, int buflen)
@@ -567,6 +589,57 @@ static void OHOSAUDIO_DestroyBuilder(int iscapture)
     }
 }
 
+static OHOSAUDIO_NATIVE_CloseRender(void)
+{
+    OH_AudioStream_Result iRet;
+    if (NULL != audioRenderer) {
+        iRet = OH_AudioRenderer_Stop(audioRenderer);
+        if (AUDIOSTREAM_SUCCESS != iRet) {
+            OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "CloseAudioDevice",
+                         "SDL audio: OH_AudioRenderer_Stop error,error code = %{public}d", iRet);
+        }
+        SDL_CondBroadcast(full);
+        iRet = OH_AudioRenderer_Release(audioRenderer);
+        SDL_AtomicSet(&stateFlag, SDL_FALSE);
+        if (AUDIOSTREAM_SUCCESS != iRet) {
+            OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "CloseAudioDevice",
+                         "SDL audio: OH_AudioRenderer_Release error,error code = %{public}d", iRet);
+        }
+        audioRenderer = NULL;
+    }
+    ohosFrameSize = -1;
+    if (rendererBuffer != NULL) {
+        SDL_free(rendererBuffer);
+        rendererBuffer = NULL;
+    }
+
+    if (bufferCond != NULL) {
+        SDL_DestroyCond(bufferCond);
+        bufferCond = NULL;
+    }
+
+    if (audioPlayLock != NULL) {
+        SDL_DestroyMutex(audioPlayLock);
+        audioPlayLock = NULL;
+    }
+    if (empty != NULL) {
+        SDL_DestroyCond(empty);
+        empty = NULL;
+    }
+    if (full != NULL) {
+        SDL_DestroyCond(full);
+        full = NULL;
+    }
+}
+
+void OHOSAUDIO_NATIVE_PrepareClose(void)
+{
+    SDL_LockMutex(audioPlayLock);
+    SDL_AtomicSet(&isShutDown, SDL_TRUE);
+    SDL_CondBroadcast(empty);
+    SDL_UnlockMutex(audioPlayLock);
+}
+
 void OHOSAUDIO_NATIVE_CloseAudioDevice(const int iscapture)
 {
     OH_AudioStream_Result iRet;
@@ -590,35 +663,7 @@ void OHOSAUDIO_NATIVE_CloseAudioDevice(const int iscapture)
         }
         OHOS_AUDIOBUFFER_DeInitCapture();
     } else {
-        if (NULL != audioRenderer) {
-            iRet = OH_AudioRenderer_Stop(audioRenderer);
-            if (AUDIOSTREAM_SUCCESS != iRet) {
-                OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "CloseAudioDevice",
-                    "SDL audio: OH_AudioRenderer_Stop error,error code = %{public}d", iRet);
-            }
-            SDL_AtomicSet(&bAudioFeedDataFlag, SDL_TRUE);
-            // Wait for the thread to exit
-            SDL_Delay(THREAD_MS);
-            iRet = OH_AudioRenderer_Release(audioRenderer);
-            if (AUDIOSTREAM_SUCCESS != iRet) {
-                OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "CloseAudioDevice",
-                    "SDL audio: OH_AudioRenderer_Release error,error code = %{public}d", iRet);
-            }
-            audioRenderer = NULL;
-        }
-        if (NULL != rendererBuffer) {
-            SDL_free(rendererBuffer);
-            rendererBuffer = NULL;
-        }
-
-        if (audioPlayLock != NULL) {
-            SDL_DestroyMutex(audioPlayLock);
-            audioPlayLock = NULL;
-        }
-        if (audioPlayCond != NULL) {
-            SDL_DestroyCond(audioPlayCond);
-            audioPlayCond = NULL;
-        }
+        OHOSAUDIO_NATIVE_CloseRender();
     }
     OHOSAUDIO_DestroyBuilder(iscapture);
     OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "CloseAudioDevice", "CloseDevice end iscapture=%{public}d", iscapture);

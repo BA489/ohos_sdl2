@@ -113,6 +113,10 @@ struct SDL_Window
 
     SDL_Window *prev;
     SDL_Window *next;
+#ifdef __OHOS__
+    void *ohosHandle; // ViewNodeController
+    char *xcompentId;
+#endif
 };
 #define FULLSCREEN_VISIBLE(W) \
     (((W)->flags & SDL_WINDOW_FULLSCREEN) && \
