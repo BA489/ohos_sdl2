@@ -16,7 +16,6 @@
 #include "adapter_c.h"
 #include <hilog/log.h>
 #include "napi/native_api.h"
-#include "cJSON.h"
 #include "../SDL_ohos_tstype.h"
 #include "adapter_c_ts.h"
 
