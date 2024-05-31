@@ -20,7 +20,7 @@
 #include <thread>
 #include <future>
 #include "napi/native_api.h"
-#include "cJSON.h"
+#include "../cJSON.h"
 
 /**
  * NodeType: Node Component Type

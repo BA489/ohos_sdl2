@@ -16,7 +16,6 @@
 #ifndef ADAPTER_C_TS_H
 #define ADAPTER_C_TS_H
 #include "adapter_c.h"
-#include "cJSON.h"
 
 void OHOS_TS_GetRootNode(const cJSON *root);
 
