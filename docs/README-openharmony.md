@@ -195,7 +195,7 @@ before creating a window:
 Threads Model
 ================================================================================
 
-When calling onPageShow in the ArsTS source code of OpenHarmony, it will be called through the so library compiled by SDL2:
+When calling onPageShow in the ArkTS source code of OpenHarmony, it will be called through the so library compiled by SDL2:
 
 ```
 sdl.init(callbackRef)
